@@ -8,3 +8,8 @@
 DB 확인하기
 docker exec -it coordinate_db psql -U Team_ten -d tabaco_retail
 SELECT * FROM address LIMIT 11;
+
+
+#### git
+branch
+main <- releas <- develop

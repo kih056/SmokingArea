@@ -16,3 +16,4 @@ main <- release <- develop
 develop branch에서 fork 후 개발 -> 본인 레퍼지토리에서는 브랜치 나눌 필요 없음(feature branch)
 * 나머지 release, main branch에는 pull request 금지
 develop에만 pr 날려주세요
+pull requset

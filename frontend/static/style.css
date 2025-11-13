@@ -1,0 +1,82 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden; /* 스크롤바 제거 */
+    font-family: Arial, sans-serif;
+}
+
+#container {
+    display: flex; /* Flexbox를 사용하여 영역 분할 */
+    height: 100vh; /* 뷰포트 전체 높이 사용 */
+}
+
+/* 왼쪽 사이드바 스타일 */
+#sidebar {
+    width: 350px; /* 사이드바 너비 */
+    background-color: #f7f7f7;
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    z-index: 10;
+    overflow-y: auto; /* 내용이 넘칠 경우 스크롤 */
+}
+
+/* 지도 영역 스타일 */
+#map {
+    flex-grow: 1; /* 남은 공간을 모두 차지 */
+    height: 100%;
+}
+
+/* 검색 및 기능 요소 스타일 */
+.feature-box {
+    margin-bottom: 25px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fff;
+}
+
+.feature-box h3 {
+    margin-top: 0;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+    color: #333;
+}
+
+input[type="text"], button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+button {
+    background-color: #0078ff; /* 네이버 지도 포인트 색상 */
+    color: white;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #005bb5;
+}
+
+/* 위시리스트 스타일 */
+#wishlist-list {
+    list-style: none;
+    padding: 0;
+}
+
+#wishlist-list li {
+    padding: 10px 0;
+    border-bottom: 1px dashed #eee;
+    font-size: 0.9em;
+    cursor: pointer;
+}
+
+#wishlist-list li:hover {
+    background-color: #f0f0f0;
+}

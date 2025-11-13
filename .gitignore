@@ -1,4 +1,8 @@
 /db/postgres_data
+<<<<<<< HEAD
 
 # 환경 변수 파일
 .env
+=======
+.env
+>>>>>>> upstream/develop

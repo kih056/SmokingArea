@@ -1,14 +1,12 @@
-version: '3.8'
+version: '3.8' # 이 줄은 선택적으로 제거 가능 (경고 피하려면)
 
 services:
-  # 서비스(컨테이너) 이름 지정
   flask-web:
     build: .
-    # 컨테이너 이름 지정 (선택 사항)
     container_name: naver-map-flask
-    # 포트 연결 설정: (호스트 포트):(컨테이너 포트)
-    # 로컬 컴퓨터의 8080 포트를 컨테이너의 5000번 포트(Flask 기본 포트)와 연결
     ports:
-      - "8080:5000"
-    # 컨테이너가 예기치 않게 종료될 경우 항상 재시작
+      - "8080:5050"
     restart: always
+    # 🚨 수정: env_file로 .env 파일 전체를 주입
+    env_file:
+      - .env 

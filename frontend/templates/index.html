@@ -1,6 +1,46 @@
+<!DOCTYPE html>
 <html>
-    <head><title>담배권 : 담배판매업소 가이드라인</title></head>
-    <body>
-        <h1>담배권</h1>
-    </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+    <title>네이버 지도 커스텀 뷰</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <script type="text/javascript" 
+    src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}&callback=initMap&submodules=geocoder">
+</script>
+</head>
+<body>
+    <div id="container">
+        <div id="sidebar">
+            <h2>🗺️ 커스텀 지도 기능</h2>
+            
+            <div class="feature-box">
+                <h3>주소 검색 및 이동</h3>
+                <input type="text" id="search-address" placeholder="주소를 입력하세요 (예: 서울특별시 강남구)">
+                <button onclick="searchAddress()">검색 및 이동</button>
+            </div>
+
+            <div class="feature-box">
+                <h3>클릭 위치 좌표 확인</h3>
+                <p id="coord-display">위도: - / 경도: -</p>
+                <button onclick="clearCoords()">좌표 초기화</button>
+            </div>
+
+            <div class="feature-box">
+                <h3>📌 위시리스트 마킹</h3>
+                <input type="text" id="wishlist-name" placeholder="마킹할 장소 이름">
+                <button id="add-wish-button" disabled>현재 위치 마킹</button> 
+                <h4>저장된 위시리스트</h4>
+                <ul id="wishlist-list">
+                    </ul>
+            </div>
+        </div>
+
+        <div id="map"></div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
 </html>

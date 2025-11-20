@@ -38,6 +38,37 @@ async def get_db():
         db.close()
         print("Database session closed.")
 
+# --- 좌표 변환 함수 ---
+def convert_epsg5174_to_wgs84(x_5174, y_5174):
+    """
+    EPSG:5174 좌표를 WGS84(위도, 경도)로 변환합니다.
+    """
+    # 입력 값 유효성 검사
+    if x_5174 is None or y_5174 is None:
+        return None, None
+    if x_5174 == -1.0 or y_5174 == -1.0:
+        return None, None
+    if math.isnan(x_5174) or math.isnan(y_5174):
+        return None, None
+
+    try:
+        crs_5174 = pyproj.CRS("EPSG:5174")
+        crs_4326 = pyproj.CRS("EPSG:4326")
+        
+        transformer = pyproj.Transformer.from_crs(crs_5174, crs_4326, always_xy=True)
+        # transform 결과는 (경도, 위도) 순서입니다 (always_xy=True 덕분)
+        lon_4326, lat_4326 = transformer.transform(x_5174, y_5174)
+        
+        # 결과 유효성 검사
+        if math.isnan(lat_4326) or math.isinf(lat_4326) or \
+           math.isnan(lon_4326) or math.isinf(lon_4326):
+            return None, None
+
+        return lat_4326, lon_4326 # (위도, 경도) 반환
+    except Exception as e:
+        print(f"좌표 변환 오류: {e}")
+        return None, None
+
 
 # --- address.csv → DB 로딩 함수 ---
 def initialize_address_table():
@@ -59,6 +90,29 @@ def initialize_address_table():
                     df['x'] = df['x'].apply(lambda v: v if pd.notna(v) and v != '' else -1.0)
                     df['y'] = df['y'].apply(lambda v: v if pd.notna(v) and v != '' else -1.0)
                 ######### 좌표 변환 수행
+                print("🔄 좌표 변환 중 (EPSG:5174 -> WGS84)...")
+                
+                def apply_conversion(row):
+                    # 원본 x, y 값을 가져옴
+                    orig_x = row['x']
+                    orig_y = row['y']
+                    
+                    # 변환 수행 (lat: 위도, lon: 경도)
+                    lat, lon = convert_epsg5174_to_wgs84(orig_x, orig_y)
+                    
+                    if lat is not None and lon is not None:
+                        # 변환 성공: x에는 경도(Lon), y에는 위도(Lat)를 저장
+                        return lon, lat 
+                    else:
+                        # 변환 실패 (원본이 -1이거나 오류): -1.0 유지
+                        return -1.0, -1.0
+
+                # apply 함수 실행 및 결과 언패킹
+                converted_coords = df.apply(apply_conversion, axis=1, result_type='expand')
+                
+                # 변환된 값을 다시 df['x'], df['y']에 할당
+                df['x'] = converted_coords[0] # Longitude (경도) -> 127.xxx
+                df['y'] = converted_coords[1] # Latitude (위도) -> 37.xxx
 
                 df.to_sql('address', con=engine, if_exists='append', index=False)
                 print("✅ CSV 데이터가 성공적으로 삽입되었습니다.")
@@ -119,45 +173,6 @@ async def lifespan(app: FastAPI):
     print("👋 FastAPI 종료!")
 
 app = FastAPI(title="Tobacco Retailer Location API", lifespan=lifespan)
-
-
-# --- 좌표 변환 함수 ---
-def convert_epsg5174_to_wgs84(x_5174, y_5174):
-    """
-    EPSG:5174 (Bessel 중부원점TM) 좌표를 EPSG:4326 (WGS84, 위도/경도)로 변환합니다.
-    유효하지 않은 입력이나 변환 실패 시 (None, None)을 반환합니다.
-    """
-    # 입력 값이 NaN이거나 유효하지 않은지 확인 (pd.read_csv에서 NaN이 올 수 있음)
-    if not isinstance(x_5174, (int, float)) or not isinstance(y_5174, (int, float)):
-        return None, None
-    if math.isnan(x_5174) or math.isnan(y_5174):
-        return None, None
-    
-    # pyproj 내부에서 유효성 검사를 하므로, 여기서는 특이값(-1.0)만 처리
-    # 만약 x,y가 0이거나 너무 작은 값 등 pyproj가 처리하지 못하는 값이 올 경우도 고려
-    if x_5174 == -1.0 or y_5174 == -1.0: # CSV 처리 로직과 일관성 유지
-        return None, None
-
-    try:
-        crs_5174 = pyproj.CRS("EPSG:5174")
-        crs_4326 = pyproj.CRS("EPSG:4326")
-        
-        transformer = pyproj.Transformer.from_crs(crs_5174, crs_4326, always_xy=True)
-        lon_4326, lat_4326 = transformer.transform(x_5174, y_5174)
-        
-        # 변환 결과가 NaN 또는 inf 인지 확인 (pyproj가 가끔 반환할 수 있음)
-        if math.isnan(lat_4326) or math.isnan(lon_4326) or \
-           math.isinf(lat_4326) or math.isinf(lon_4326):
-            return None, None
-
-        return lat_4326, lon_4326
-    except pyproj.exceptions.ProjError as e:
-        print(f"좌표 변환 중 ProjError 발생: x={x_5174}, y={y_5174}, Error: {e}")
-        return None, None
-    except Exception as e:
-        print(f"알 수 없는 좌표 변환 오류 발생: x={x_5174}, y={y_5174}, Error: {e}")
-        return None, None
-
 
 # --- API 엔드포인트 ---
 

@@ -1,5 +1,5 @@
 # app/main.py
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Query, APIRouter
 import os
 from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.orm import sessionmaker
@@ -8,6 +8,8 @@ import pyproj
 from contextlib import asynccontextmanager
 import asyncio # 비동기 컨텍스트에서 동기 함수 실행을 위해 필요
 import math
+import httpx
+import re
 
 from app.services.naver_api import get_coordinates_from_address
 
@@ -180,61 +182,6 @@ app = FastAPI(title="Tobacco Retailer Location API", lifespan=lifespan)
 async def read_root():
     return {"message": "Welcome to Tobacco Retailer Location API!"}
 
-@app.get("/test")
-async def get_converted_addresses(db=Depends(get_db)):
-    """
-    DB에서 모든 주소의 x, y 좌표를 가져와 WGS84 (위도, 경도)로 변환하여 반환합니다.
-    """
-    print("🔄 /test 엔드포인트 호출: DB에서 좌표를 가져와 변환 중...")
-    try:
-        # DB에서 모든 주소 데이터 조회 (x, y, 주소 정보 포함)
-        # pd.read_sql은 동기 함수이므로 asyncio.to_thread로 감싸서 실행
-        query = text("SELECT landlot_address, road_name_address, x, y FROM address")
-        df_addresses = await asyncio.to_thread(pd.read_sql, query, db.connection())
-
-        if df_addresses.empty:
-            return {"message": "데이터베이스에 주소 데이터가 없습니다."}
-
-        # 각 행의 x, y 좌표를 WGS84로 변환
-        # apply 또한 동기 함수이므로 asyncio.to_thread로 감싸서 실행
-        df_addresses[['latitude', 'longitude']] = await asyncio.to_thread(
-            df_addresses.apply,
-            lambda row: convert_epsg5174_to_wgs84(row['x'], row['y']),
-            axis=1,
-            result_type='expand'
-        )
-
-        # 변환된 결과 정리
-        converted_results = []
-        for index, row in df_addresses.iterrows():
-            if row['latitude'] is not None and row['longitude'] is not None:
-                converted_results.append({
-                    "landlot_address": row['landlot_address'],
-                    "road_name_address": row['road_name_address'],
-                    "original_x_5174": row['x'],
-                    "original_y_5174": row['y'],
-                    "converted_latitude_4326": row['latitude'],
-                    "converted_longitude_4326": row['longitude']
-                })
-            else:
-                converted_results.append({
-                    "landlot_address": row['landlot_address'],
-                    "road_name_address": row['road_name_address'],
-                    "original_x_5174": row['x'],
-                    "original_y_5174": row['y'],
-                    "status": "변환 실패 (유효하지 않은 좌표)"
-                })
-
-        print(f"✅ 총 {len(converted_results)}개의 좌표 변환 완료.")
-        return {"converted_addresses": converted_results}
-
-    except Exception as e:
-        print(f"❌ /test 엔드포인트 처리 중 오류 발생: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"좌표 변환 중 서버 오류 발생: {e}"
-        )
-
 @app.get("/geocode")
 async def geocode_address(db=Depends(get_db)):
     """
@@ -307,9 +254,6 @@ async def get_restricted_zones(db=Depends(get_db)):
         ]
     }
 
-
-from fastapi import APIRouter
-
 coordinates = APIRouter(prefix="/getcoordinates")
 
 @coordinates.get("/toORS")
@@ -322,3 +266,244 @@ async def get_coordinates_to_ORS(db=Depends(get_db)):
 
 
 app.include_router(coordinates)
+
+
+
+
+# --- 반경 50m 상가 건물 찾기 알고리즘 ---
+router = APIRouter(prefix="/building", tags=["building"])
+
+# --- 설정 값 (환경 변수로 관리 권장) ---
+NAVER_CLOUD_ID = os.getenv("NAVER_CLIENT_ID")          # Ncloud (Geocoding용)
+NAVER_CLOUD_SECRET = os.getenv("NAVER_CLIENT_SECRET")  # Ncloud (Geocoding용)
+
+NAVER_DEV_ID = os.getenv("NAVER_DEV_ID")            # Developers (Search용)
+NAVER_DEV_SECRET = os.getenv("NAVER_DEV_SECRET")    # Developers (Search용)
+
+# --- 검색할 카테고리 리스트 ---
+TARGET_CATEGORIES = ["편의점", "카페", "음식점", "약국", "은행", "병원"]
+
+# 1. 거리 계산 함수 (Haversine Formula)
+def calculate_distance(lat1, lon1, lat2, lon2):
+    R = 6371000  # 지구 반지름 (미터)
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    print(f"${dphi} | ${phi1} | ${phi2} | ${dlambda}")
+    a = math.sin(dphi / 2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2)**2
+    
+    # a 값이 0보다 작으면 0으로, 1보다 크면 1로 만듭니다.
+    a = max(0.0, min(1.0, a))
+    # ▲▲▲ [여기까지 추가] ▲▲▲
+
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return R * c
+
+# 2. 좌표 -> 주소 변환 (Reverse Geocoding)
+async def get_address_from_coords(lat: float, lon: float):
+    # 1. API 키 환경 변수 확인
+    if not NAVER_CLOUD_ID or not NAVER_CLOUD_SECRET:
+        print("❌ ERROR: Ncloud API 키(NAVER_CLOUD_ID, NAVER_CLOUD_SECRET)가 설정되지 않았습니다.")
+        return None
+
+    url = "https://maps.apigw.ntruss.com/map-reversegeocode/v2/gc"
+    headers = {
+        "X-NCP-APIGW-API-KEY-ID": NAVER_CLOUD_ID,
+        "X-NCP-APIGW-API-KEY": NAVER_CLOUD_SECRET,
+        "Accept": "application/json"
+    }
+    params = {
+        "coords": f"{lon},{lat}",
+        "output": "json",
+        "orders": "roadaddr,addr"
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, headers=headers, params=params)
+            data = response.json()
+            
+
+            # 2. HTTP 상태 코드 확인 (200 OK가 아니면 에러)
+            if response.status_code != 200:
+                 print(f"⚠️ Geocoding API HTTP 오류: Status={response.status_code}, Body={data}")
+                 return None
+            
+            # 3. 안전하게 응답 데이터 확인 (.get 사용)
+            # 'status' 키가 없거나, 'status' 안에 'code'가 0이 아니거나, 'results'가 비어있으면 실패로 간주
+            status_data = data.get("status")
+            if status_data and status_data.get("code") == 0 and data.get("results"):
+                region = data["results"][0]["region"]
+                area1 = region["area1"]["name"]
+                area2 = region["area2"]["name"]
+                area3 = region["area3"]["name"]
+                return f"{area1} {area2} {area3}"
+            else:
+                # 정상 응답 구조가 아니거나 에러 코드가 반환된 경우
+                print(f"⚠️ Geocoding API 응답 오류: {data}")
+                return None
+
+    except httpx.RequestError as e:
+         print(f"❌ Geocoding 네트워크 요청 에러: {e}")
+         return None
+    except Exception as e:
+        # JSON 디코딩 에러 등 기타 예외 처리
+        print(f"❌ Geocoding 알 수 없는 에러: {e}")
+        return None
+
+# 3. 키워드 검색 (Naver Search API)
+async def search_places(query: str):
+    # 1. 키 존재 여부 재확인
+    if not NAVER_DEV_ID or not NAVER_DEV_SECRET:
+        print(f"[DEBUG] ❌ 검색 실패: Developers API 키가 없습니다. (Query: {query})")
+        return []
+
+    url = "https://openapi.naver.com/v1/search/local.json"
+    headers = {
+        "X-Naver-Client-Id": NAVER_DEV_ID,
+        "X-Naver-Client-Secret": NAVER_DEV_SECRET
+    }
+    params = {
+        "query": query,
+        "display": 5,
+        "sort": "random"
+    }
+    
+    print(f"[DEBUG] 🔎 검색 요청 시작: Query='{query}'") # 요청 시작 로그
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, headers=headers, params=params)
+            
+            # 응답 상태 코드 및 바디 확인
+            print(f"[DEBUG] 📩 검색 응답 수신: Status={response.status_code}, Query='{query}'")
+
+            if response.status_code == 200:
+                data = response.json()
+                items = data.get("items", [])
+                print(f"[DEBUG] ✅ 검색 성공: {len(items)}건 발견 (Query='{query}')")
+                return items
+            else:
+                # 200 OK가 아닌 경우 응답 본문(에러 메시지) 출력
+                print(f"[DEBUG] ⚠️ 검색 API 오류 응답: Body={response.text}")
+                return []
+                
+    except httpx.RequestError as e:
+        # 네트워크 레벨의 에러 (연결 실패, 타임아웃 등)
+        print(f"[DEBUG] ❌ 검색 네트워크 요청 에러: {e} (Query='{query}')")
+        return []
+    except Exception as e:
+        # 기타 예상치 못한 에러
+        print(f"[DEBUG] ❌ 검색 알 수 없는 에러: {e} (Query='{query}')")
+        return []
+
+# --- 메인 엔드포인트 ---
+@router.get("/nearby-buildings")
+async def get_nearby_buildings(latitude: float, longitude: float):
+    """
+    x(경도), y(위도)를 받아 50m 반경 내의 상가 건물을 그룹화하여 반환
+    """
+    
+    # 1. 현재 위치의 주소(동 이름) 확보
+    current_address = await get_address_from_coords(latitude, longitude)
+    if not current_address:
+        raise HTTPException(status_code=404, detail="현재 위치의 주소를 찾을 수 없습니다.")
+    
+    print(f"📍 현재 주소: {current_address}")
+
+    # 2. 카테고리별 검색 병렬 실행
+    search_tasks = []
+    for category in TARGET_CATEGORIES:
+        query = f"{current_address} {category}" # 예: "역삼동 편의점"
+        search_tasks.append(search_places(query))
+    
+    # 모든 검색 결과 수집
+    results_list = await asyncio.gather(*search_tasks)
+    
+    # 3. 결과 필터링 (거리 50m 이내) 및 데이터 정제
+    valid_places = []
+    
+    for items in results_list:
+        for item in items:
+            # HTML 태그 제거
+            title = re.sub('<[^<]+?>', '', item['title'])
+            address = item['roadAddress'] if item['roadAddress'] else item['address']
+            
+            try:
+                # 네이버 검색 API는 WGS84 좌표에 1e7(천만)을 곱한 값을 반환합니다.
+                # mapx = 경도 * 1e7, mapy = 위도 * 1e7
+                place_lon = float(item['mapx']) / 10_000_000
+                place_lat = float(item['mapy']) / 10_000_000
+            except (ValueError, TypeError):
+                 print(f"⚠️ 좌표 파싱 실패: {title} (mapx:{item.get('mapx')}, mapy:{item.get('mapy')})")
+                 continue
+
+            #if math.isinf(place_lat) or math.isinf(place_lon):
+                # print(f"⚠️ 좌표 변환 오류(무한대 발생): {title} - mapx:{katech_x}, mapy:{katech_y}") # 필요시 로그 주석 해제
+                #continue # 이 상가는 건너뜁니다.
+
+            # 거리 계산
+            distance = calculate_distance(latitude, longitude, place_lat, place_lon)
+
+            # [디버깅용 로그 - 필요시 주석 해제하여 거리 확인]
+            print(f"[DEBUG] 거리 계산: {title} -> {distance:.2f}m (Lat:{place_lat}, Lon:{place_lon})")
+            
+            if distance <= 50.0: # 50m 반경 필터링
+                valid_places.append({
+                    "name": title,
+                    "category": item['category'],
+                    "address": address,
+                    "distance": round(distance, 2),
+                    "lat": place_lat,
+                    "lon": place_lon
+                })
+
+    # 4. 건물 단위로 그룹화 (주소 기준)
+    buildings = {}
+    for place in valid_places:
+        addr = place['address']
+        if addr not in buildings:
+            buildings[addr] = {
+                "building_address": addr,
+                "stores": [],
+                "location": {"lat": place['lat'], "lon": place['lon']} # 건물 대표 좌표
+            }
+        
+        # 건물 내 상가 리스트에 추가
+        buildings[addr]["stores"].append({
+            "name": place['name'],
+            "category": place['category']
+        })
+
+    # 리스트 형태로 변환하여 반환
+    return {
+        "count": len(buildings),
+        "radius_meter": 50,
+        "buildings": list(buildings.values())
+    }
+
+# --- [추가됨] 테스트용 엔드포인트 ---
+@router.get("/test/gangnam")
+async def test_gangnam_nearby_buildings():
+    """
+    [테스트용] 서울 강남역 인근 좌표로 50m 상가 건물을 검색합니다.
+    """
+    #테스트 좌표
+    test_lat = 37.498095
+    test_lon = 127.027610
+    
+    print(f"🧪 테스트 실행: 강남역 인근 (Lat: {test_lat}, Lon: {test_lon})")
+    return await get_nearby_buildings(test_lat, test_lon)
+
+# --- [디버깅용] Search API 독립 테스트 ---
+@router.get("/test/search-only")
+async def test_search_api_only(keyword: str = Query(..., description="검색할 키워드 (예: 강남역 카페)")):
+    """
+    [디버깅용] 다른 로직 없이 오직 네이버 검색 API만 테스트합니다.
+    """
+    print(f"[DEBUG] 🧪 독립 검색 테스트 요청: Keyword='{keyword}'")
+    results = await search_places(keyword)
+    return {"keyword": keyword, "count": len(results), "results": results}
+
+app.include_router(router)

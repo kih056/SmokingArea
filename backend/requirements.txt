@@ -7,6 +7,7 @@ numpy==1.26.0
 psycopg2-binary
 pyproj==3.6.1
 httpx
+pydantic-settings
 
 # GIS 관련 라이브러리 (필요시 주석 해제)
 # osmnx==1.2.1

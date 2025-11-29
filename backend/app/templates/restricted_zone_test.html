@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}"></script>
+    <title>제한 구역 확인</title>
+</head>
+<body>
+    <div style="position:absolute; top:10px; left:10px; z-index:100; background:white; padding:10px; border-radius:5px; box-shadow:0 0 5px rgba(0,0,0,0.2);">
+        <div><span style="color:blue;">●</span> 원본 상점 위치 (address DB)</div>
+        <div><span style="color:red;">●</span> 제한 구역 중심 (impossible DB)</div>
+        <div><span style="display:inline-block; width:10px; height:10px; background:rgba(255,0,0,0.3); border:1px solid red;"></span> 제한 구역 (100m 반경)</div>
+    </div>
+    <div id="map" style="width:100%;height:100vh;"></div>
+
+    <script>
+        // 지도 초기화
+        var map = new naver.maps.Map('map', {
+            center: new naver.maps.LatLng(37.261967, 127.030646), // 수원 시청
+            zoom: 14
+        });
+
+        // 데이터 받기
+        // tojson 필터가 Python 객체를 JSON 문자열로 바꿔주고, 'safe'가 이스케이프를 방지
+        var zonesData = {{ zones | tojson | safe }};
+        var storesData = {{ stores | tojson | safe }};
+
+        // 시각화
+        if (zonesData && zonesData.length > 0) {
+            // 제한 구역
+            zonesData.forEach(function(zone) {
+                if (zone.vertices) {
+                    var path = [];
+                    zone.vertices.forEach(function(coord) {
+                        path.push(new naver.maps.LatLng(coord[1], coord[0]));
+                    });
+                    new naver.maps.Polygon({
+                        map: map,
+                        paths: path,
+                        fillColor: '#ff0000',
+                        fillOpacity: 0.3,
+                        strokeColor: '#ff0000',
+                        strokeOpacity: 0.6,
+                        strokeWeight: 2,
+                        clickable: true
+                    });
+                }
+                
+                // 중심점 (빨간색 마커)
+                if (zone.x && zone.y) {
+                    new naver.maps.Marker({
+                        position: new naver.maps.LatLng(zone.y, zone.x),
+                        map: map,
+                        icon: {
+                            content: '<div style="width:10px;height:10px;background-color:red;border-radius:50%;border:1px solid white;"></div>',
+                            anchor: new naver.maps.Point(5, 5)
+                        }
+                    });
+                }
+            });
+            console.log(zonesData.length + "개의 제한 구역을 그렸습니다.");
+        }
+        else {
+            console.log("표시할 제한 구역 데이터가 없습니다.");
+        }
+
+        // 상점 (파란색 마커)
+        if (storesData && storesData.length > 0) {
+            storesData.forEach(function(store) {
+                if (store.x && store.y) {
+                    var marker = new naver.maps.Marker({
+                        position: new naver.maps.LatLng(store.y, store.x),
+                        map: map,
+                        title: "[상점] " + store.address,
+                        icon: {
+                            content: '<div style="width:12px;height:12px;background-color:blue;border-radius:50%;border:2px solid white;box-shadow:0 0 2px black;"></div>',
+                            anchor: new naver.maps.Point(6, 6)
+                        },
+                        zIndex: 100 // 상점 마커를 더 위에 표시
+                    });
+
+                    // 정보 창
+                    var infoWindow = new naver.maps.InfoWindow({
+                        content: '<div style="padding:5px; font-size:12px;">' + store.address + '</div>'
+                    });
+                    naver.maps.Event.addListener(marker, 'click', function(e) {
+                        if (infoWindow.getMap()) {
+                            infoWindow.close();
+                        }
+                        else {
+                            infoWindow.open(map, marker);
+                        }
+                    });
+                }
+            });
+            console.log("상점 마커 " + storesData.length + "개를 그렸습니다.");
+        }
+        else {
+            console.log("표시할 위치 데이터가 없습니다.");
+        }
+    </script>
+</body>
+</html>

@@ -1,7 +1,8 @@
 # app/services/db_service.py
 import pandas as pd
 import asyncio
-from sqlalchemy import text, inspect
+import os
+from sqlalchemy import text
 import traceback
 
 from app.core.config import settings
@@ -75,8 +76,8 @@ def initialize_address_table():
 
 async def fill_missing_coordinates():
     """
+    [앱 시작 시 실행] 
     DB에서 좌표(x, y)가 비어 있는(-1) 레코드를 찾아 실제 좌표로 채워넣는 함수
-    - 추후 수정 예정
     """
     db = SessionLocal()
     try:
@@ -110,5 +111,112 @@ async def fill_missing_coordinates():
     except Exception as e:
         print(f"비어 있는 좌표 업데이트 중 오류 발생: {e}")
         await asyncio.to_thread(db.rollback)
+    finally:
+        db.close()
+        
+async def initialize_impossible_table():
+    """
+    [앱 시작 시 실행] 
+    제한 구역 CSV 데이터를 읽어와 DB의 impossible 테이블에 저장하는 함수
+    """
+    db = SessionLocal()
+    try:
+        if not os.path.exists(settings.ZONE_CSV_PATH):
+            print(f"제한 구역 CSV 파일이 없습니다: {settings.ZONE_CSV_PATH}")
+            return
+        
+        # 개발 단계에서 사용
+        print("제한 구역 데이터 갱신 (impossible 테이블 데이터 삭제) 중...")
+        await asyncio.to_thread(lambda: db.execute(text("DELETE FROM impossible")))
+        await asyncio.to_thread(db.commit)
+        
+        # if not await is_empty_impossible_table():
+        #     print("제한 구역 데이터가 이미 존재합니다. CSV 파일 저장을 건너뜁니다.")
+        #     return
+        
+        df = pd.read_csv(settings.ZONE_CSV_PATH)
+        if df.empty:
+            print("restricted_zone.csv 파일이 비어 있습니다.")
+            return
+        
+        required_cols = ["landlot_address", "centroid_x", "centroid_y", "polygon_geom", "vertices"]
+        if not set(required_cols).issubset(df.columns):
+            print(f"restricted_zone.csv 컬럼 부족: {required_cols}")
+            return
+        
+        insert_query = text("""
+            INSERT INTO impossible (
+                landlot_address, centroid_x, centroid_y,
+                polygon_geom, vertices)
+            VALUES (
+                :landlot_address, :centroid_x, :centroid_y,
+                ST_SetSRID(ST_GeomFromText(:polygon_geom), 4326),
+                :vertices);
+        """)
+        params = df[required_cols].to_dict(orient='records')
+
+        db.execute(insert_query, params)
+        db.commit()
+        print("impossible 테이블 초기화 및 CSV 데이터 저장 완료.")
+    
+    except Exception as e:
+        print(f"impossible 테이블 정보 저장 중 오류 발생: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+async def get_valid_address():
+    """
+    address 테이블에서 위치 정보를 조회하여 반환하는 함수
+    """
+    db = SessionLocal()
+    try:
+        rows = await asyncio.to_thread(
+            lambda: db.execute(text("""
+                     SELECT landlot_address, x, y 
+                     FROM address 
+                     WHERE x != -1 AND y != -1
+                     """)).fetchall())
+        return rows
+    
+    except Exception as e:
+        print(f"address 테이블 조회 중 오류 발생: {e}")
+        return []
+    finally:
+        db.close()
+        
+async def is_empty_impossible_table():
+    """
+    impossible 테이블에 저장된 제한 구역이 있는지 확인하는 함수
+    """
+    db = SessionLocal()
+    try:
+        count = await asyncio.to_thread(
+            lambda: db.execute(text("SELECT COUNT(*) FROM impossible")).scalar())
+        return count == 0
+    
+    except Exception as e:
+        print(f"impossible 테이블 확인 중 오류 발생: {e}")
+        return False
+    finally:
+        db.close()
+
+async def get_restricted_zone():
+    """
+    impossible 테이블에서 제한 구역 정보를 조회하여 반환하는 함수
+    """
+    db = SessionLocal()
+    try:
+        rows = await asyncio.to_thread(
+            lambda: db.execute(
+                text("""
+                     SELECT landlot_address, vertices, centroid_x, centroid_y 
+                     FROM impossible
+                     """)).fetchall())
+        return rows
+    
+    except Exception as e:
+        print(f"impossible 테이블 조회 중 오류 발생: {e}")
+        return []
     finally:
         db.close()

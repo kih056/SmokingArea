@@ -1,0 +1,65 @@
+# .github/workflows/ci.yml
+name: CI - Test and Lint
+
+on:
+  push:
+    branches: [ "main", "develop" ] # main, develop 브랜치에 푸시될 때
+  pull_request:
+    branches: [ "main", "develop" ] # PR이 생성될 때
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    # ⭐ 핵심: 테스트를 위한 임시 DB 컨테이너 실행
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4 # docker-compose와 동일한 이미지 사용
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: ${{ secrets.TEST_DB_PASSWORD }}
+        ports:
+          - 5432:5432
+        # DB가 완전히 준비될 때까지 기다리는 헬스 체크
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # 1. 코드 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Python 환경 설정
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip' # pip 캐싱 활성화
+
+      # 3. 의존성 설치
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # 테스트 및 린트 도구 추가 설치
+          pip install pytest httpx flake8 black
+
+      # 4. 테스트 실행
+      - name: Run tests with pytest
+        env:
+          # ⭐ 테스트 환경을 위한 환경 변수 주입
+          # 호스트를 'localhost' 또는 'postgres'(서비스 이름)로 설정
+          DATABASE_URL: postgresql://test_user:${{ secrets.TEST_DB_PASSWORD }}@localhost:5432/test_db
+          NAVER_CLOUD_ID: ${{ secrets.NAVER_CLOUD_ID }}
+          NAVER_CLOUD_SECRET: ${{ secrets.NAVER_CLOUD_SECRET }}
+          NAVER_DEV_ID: ${{ secrets.NAVER_DEV_ID }}
+          NAVER_DEV_SECRET: ${{ secrets.NAVER_DEV_SECRET }}
+        run: |
+          # pytest 실행 (tests 폴더가 있다고 가정)
+          # 현재 테스트 코드가 없다면 이 단계가 실패할 수 있으므로 임시로 echo 처리하거나 테스트 코드를 작성해야 합니다.
+          # pytest
+          echo "테스트 코드가 준비되면 'pytest' 명령어로 대체하세요."

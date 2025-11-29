@@ -44,7 +44,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r backend/requirements.txt
           # 테스트 및 린트 도구 추가 설치
           pip install pytest httpx flake8 black
 

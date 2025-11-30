@@ -41,7 +41,7 @@ async def get_impossible_polygons(db: Session = Depends(get_db)):
     try:
         query = text("SELECT vertices FROM impossible")
         rows = await asyncio.to_thread(lambda: db.execute(query).fetchall())
-        polygons = [json.loads(row[0]) for row in rows]
+        polygons = [row[0] for row in rows]
         return {"polygons": polygons}
     except Exception as e:
         print(f"Error in get_impossible_polygons: {e}")

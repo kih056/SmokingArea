@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Service Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ncp-green: #03c75a;
+            --ncp-dark: #333333;
+            --ncp-gray: #8e8e8e;
+            --ncp-bg: #f5f7f8;
+            --card-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        body {
+            background-color: var(--ncp-bg);
+            color: var(--ncp-dark);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        header {
+            background: #fff;
+            padding: 20px 40px;
+            border-bottom: 1px solid #e5e5e5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--ncp-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo span {
+            color: var(--ncp-green);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #1c3d5b 0%, #14283a 100%);
+            color: white;
+            padding: 80px 20px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+
+        .btn-start {
+            background-color: var(--ncp-green);
+            color: white;
+            padding: 15px 40px;
+            font-size: 1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-start:hover {
+            background-color: #02b150;
+            transform: translateY(-2px);
+        }
+
+        /* Features Section */
+        .container {
+            max-width: 1200px;
+            margin: -50px auto 50px;
+            padding: 0 20px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-top: 4px solid transparent;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-top: 4px solid var(--ncp-green);
+        }
+
+        .icon-box {
+            width: 50px;
+            height: 50px;
+            background: #e8fcf2;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            color: var(--ncp-green);
+            font-size: 1.5rem;
+        }
+
+        .card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .card p {
+            color: var(--ncp-gray);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: var(--ncp-gray);
+            font-size: 0.85rem;
+            border-top: 1px solid #e5e5e5;
+        }
+
+        /* Animation */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">Tobacco Retails <span>Maps</span> Service</div>
+    </header>
+
+    <section class="hero">
+        <div class="fade-in">
+            <h1>담배판매 가능 업소</h1>
+            <p>네이버 지도의 강력한 기능을 활용하여 주소 검색부터 다각형 구역 분석까지 경험해보세요.</p>
+            <a href="/map" class="btn-start">서비스 시작하기</a>
+        </div>
+    </section>
+
+    <div class="container">
+        <div class="feature-grid">
+            <div class="card fade-in" style="animation-delay: 0.1s;">
+                <div class="icon-box"></div>
+                <h3>입점 가능 여부 확인</h3>
+                <p>해당 위치가 기존 업소의 도보 100m 제한 구역에 포함되는지 분석합니다.
+</p>
+            </div>
+
+            <div class="card fade-in" style="animation-delay: 0.2s;">
+                <div class="icon-box"></div>
+                <h3>담배 소매업 제한 구역 표시</h3>
+                <p>기존 모든 담배 소매업소의 위치에서 도보 100m 반경을 계산합니다. 이 모든 영역을 하나로 합쳐 지도 위에 붉은색 제한 구역으로 표시합니다.</p>
+            </div>
+
+            <div class="card fade-in" style="animation-delay: 0.3s;">
+                <div class="icon-box"></div>
+                <h3>위시리스트 관리</h3>
+                <p>위치를 '위시리스트'에 저장할 수 있습니다. 저장된 후보지 목록을 Excel 파일로 한 번에 다운로드할 수 있습니다.</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 정찬희, 김민규, 이승욱, 김인희</p>
+        <p>Powered by NAVER Cloud Platform Maps API v3</p>
+    </footer>
+
+</body>
+</html>

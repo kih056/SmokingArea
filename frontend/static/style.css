@@ -1,82 +1,165 @@
 body, html {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    overflow: hidden; /* 스크롤바 제거 */
-    font-family: Arial, sans-serif;
-}
-
-#container {
-    display: flex; /* Flexbox를 사용하여 영역 분할 */
-    height: 100vh; /* 뷰포트 전체 높이 사용 */
-}
-
-/* 왼쪽 사이드바 스타일 */
-#sidebar {
-    width: 350px; /* 사이드바 너비 */
-    background-color: #f7f7f7;
-    padding: 20px;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-    z-index: 10;
-    overflow-y: auto; /* 내용이 넘칠 경우 스크롤 */
-}
-
-/* 지도 영역 스타일 */
-#map {
-    flex-grow: 1; /* 남은 공간을 모두 차지 */
-    height: 100%;
-}
-
-/* 검색 및 기능 요소 스타일 */
-.feature-box {
-    margin-bottom: 25px;
-    padding: 15px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background-color: #fff;
-}
-
-.feature-box h3 {
-    margin-top: 0;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 10px;
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    font-family: 'Noto Sans KR', 'Pretendard', sans-serif;
     color: #333;
 }
 
-input[type="text"], button {
+#container { display: flex; height: 100vh; position: relative; }
+
+/* --- 사이드바 스타일 (토글 기능 포함) --- */
+#sidebar {
+    width: 320px;
+    min-width: 320px;
+    background-color: #ffffff;
+    box-shadow: 4px 0 15px rgba(0,0,0,0.05);
+    z-index: 20;
+    border-right: 1px solid #eee;
+    transition: margin-left 0.3s ease; /* 슬라이드 애니메이션 */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 사이드바가 접혔을 때 */
+#sidebar.collapsed {
+    margin-left: -320px;
+}
+
+/* 사이드바 내부 컨텐츠 (스크롤 영역) */
+.sidebar-content {
+    padding: 25px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+/* 토글 버튼 */
+#sidebar-toggle-btn {
+    position: absolute;
+    top: 50%;
+    right: -24px; /* 사이드바 바깥으로 돌출 */
+    width: 24px;
+    height: 48px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-left: none;
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+    z-index: 30;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+    padding: 0;
+}
+#sidebar-toggle-btn:hover { background: #f0f0f0; }
+
+#map { flex-grow: 1; height: 100%; }
+
+h2 { margin-top: 0; margin-bottom: 25px; font-size: 1.1rem; font-weight: 700; color: #111; }
+
+/* 기능 박스 */
+.feature-box { margin-bottom: 20px; }
+.feature-box h3 {
+    margin-top: 0; font-size: 0.9rem; font-weight: 600;
+    margin-bottom: 10px; color: #555;
+}
+
+/* 입력 폼 스타일 */
+input[type="text"], textarea {
     width: 100%;
-    padding: 10px;
-    margin-top: 8px;
+    padding: 10px 12px;
     box-sizing: border-box;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    transition: border-color 0.2s;
+}
+input[type="text"]:focus, textarea:focus { outline: none; border-color: #2db400; }
+textarea { resize: vertical; margin-bottom: 5px; }
+
+/* 위시리스트 폼 레이아웃 */
+.form-row {
+    display: flex; gap: 5px; margin-bottom: 5px;
+}
+input[type="color"] {
+    border: none; width: 40px; height: 40px; cursor: pointer; background: none; padding: 0;
 }
 
 button {
-    background-color: #0078ff; /* 네이버 지도 포인트 색상 */
-    color: white;
-    cursor: pointer;
-    border: none;
-    transition: background-color 0.3s;
+    padding: 10px; border: none; border-radius: 6px;
+    background-color: #333; color: white;
+    cursor: pointer; font-weight: 500; font-size: 13px;
+    transition: 0.2s; width: 100%;
+}
+button:hover { background-color: #555; }
+button:disabled { background-color: #e0e0e0; cursor: not-allowed; color: #999; }
+
+/* --- 위시리스트 목록 스타일 (New) --- */
+details.group-item {
+    margin-bottom: 8px; border: 1px solid #eee; border-radius: 6px; overflow: hidden;
+}
+details.group-item summary {
+    padding: 10px; background-color: #f9f9f9; cursor: pointer;
+    font-size: 13px; font-weight: bold; color: #444; list-style: none;
+    display: flex; justify-content: space-between; align-items: center;
+}
+details.group-item summary:hover { background-color: #f0f0f0; }
+details.group-item summary::-webkit-details-marker { display: none; }
+
+.wish-item {
+    padding: 10px; border-top: 1px solid #f0f0f0; position: relative;
+    background: white; transition: background 0.2s;
+}
+.wish-item:hover { background-color: #f0f8ff; }
+
+.wish-item-header { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.wish-address { font-size: 13px; font-weight: 600; color: #333; }
+.wish-note { 
+    font-size: 11px; color: #666; background: #f5f5f5; 
+    padding: 4px 6px; border-radius: 4px; margin-top: 4px; display: inline-block; 
 }
 
-button:hover {
-    background-color: #005bb5;
+/* 수정/삭제 버튼 (호버 시 표시) */
+.item-actions {
+    position: absolute; top: 8px; right: 8px; display: none;
+    background: rgba(255,255,255,0.9); padding: 2px; border-radius: 4px;
 }
+.wish-item:hover .item-actions { display: flex; gap: 5px; }
+.action-btn {
+    background: none; border: none; padding: 3px; cursor: pointer; font-size: 12px; width: auto;
+}
+.action-btn.edit { color: #0078ff; }
+.action-btn.del { color: #ff4d4f; }
 
-/* 위시리스트 스타일 */
-#wishlist-list {
-    list-style: none;
-    padding: 0;
+/* --- 토글 스위치 --- */
+.switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #ccc; transition: .4s; border-radius: 34px;
 }
+.slider:before {
+    position: absolute; content: ""; height: 14px; width: 14px;
+    left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+}
+input:checked + .slider { background-color: #2db400; }
+input:checked + .slider:before { transform: translateX(14px); }
 
-#wishlist-list li {
-    padding: 10px 0;
-    border-bottom: 1px dashed #eee;
-    font-size: 0.9em;
-    cursor: pointer;
+/* --- 하단 오버레이 --- */
+#location-footer {
+    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+    z-index: 100; min-width: 360px; background: white; color: #333;
+    padding: 15px 25px; border-radius: 50px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+    display: none; align-items: center; justify-content: space-between; gap: 20px;
 }
-
-#wishlist-list li:hover {
-    background-color: #f0f0f0;
+#location-footer .footer-content { display: flex; flex-direction: column; }
+#location-footer .footer-address { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+#location-footer .footer-status { font-size: 13px; color: #666; }
+#location-footer .footer-button {
+    background-color: #2db400; color: white; border: none; padding: 10px 20px;
+    border-radius: 25px; font-weight: 600; width: auto; white-space: nowrap;
 }
+#location-footer .footer-button:hover { background-color: #249000; }

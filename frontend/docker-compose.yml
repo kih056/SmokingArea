@@ -5,7 +5,7 @@ services:
     build: .
     container_name: naver-map-flask
     ports:
-      - "8080:5050"
+      - "8080:5000"
     restart: always
     # 🚨 수정: env_file로 .env 파일 전체를 주입
     env_file:

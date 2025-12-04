@@ -1,0 +1,54 @@
+name: Backend Test - Geocoding (Naver Maps API)
+
+on:
+  # 수동 실행(실제 API 사용)
+  workflow_dispatch:
+
+jobs:
+  test-geocoding:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+        # backend 디렉터리에서 실행
+
+    # 테스트용 DB(PostGIS 포함)를 Docker 컨테이너로 실행
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        # DB 준비되기 전까지 테스트 실행 안 됨
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r backend/requirements.txt; fi
+        pip install pytest pytest-asyncio pytest-mock geoalchemy2
+
+    - name: Run Geocoding Test
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+        NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+        NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+        PYTHONPATH: .
+      run: |
+        pytest tests/test_geocoding.py -s

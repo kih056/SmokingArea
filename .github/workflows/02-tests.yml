@@ -53,5 +53,4 @@ jobs:
           NAVER_DEV_ID: mock_id
           NAVER_DEV_SECRET: mock_secret
         run: |
-          pytest backend/tests/
-          pytest --ignore=backend/tests/test_geocoding.py --ignore=backend/tests/test_geocoding_mock.py
+          pytest backend/tests/ --ignore=backend/tests/test_geocoding.py --ignore=backend/tests/test_geocoding_mock.py

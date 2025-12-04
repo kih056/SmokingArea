@@ -24,7 +24,7 @@ services:
     container_name: tobacco_backend
     restart: always
     env_file:
-      - ./backend/.env
+      - ./.env
     command: >
       sh -c "sleep 10 && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     depends_on:
@@ -47,7 +47,7 @@ services:
     depends_on:
       - backend
     env_file:
-      - ./backend/.env
+      - ./.env
     ports:
       - "8080:5000"
     networks:

@@ -1,14 +1,16 @@
 # app/core/database.py
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 from typing import Generator
 from app.core.config import settings
 
 # --- SQLAlchemy 엔진 및 세션 설정 (FastAPI 비동기 환경에 맞게 조정) ---
 # 동기 엔진 생성 (FastAPI에서 직접 사용하지 않고, asyncio.to_thread로 감싸서 사용)
-DATABASE_URL = "postgresql://Team_ten:1234@db:5432/tabaco_retail"
+DATABASE_URL = settings.DATABASE_URL
 sync_engine = create_engine(DATABASE_URL) 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
+
+Base = declarative_base()
 
 # --- DB 의존성 주입 함수 (실제 DB 연결 사용) ---
 def get_db():

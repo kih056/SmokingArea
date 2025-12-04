@@ -73,8 +73,6 @@ def initialize_address_table():
         print(f"❌ DB 초기화 중 오류 발생: {e}")
         traceback.print_exc()
 
-
-
 async def fill_missing_coordinates():
     """
     [앱 시작 시 실행] 

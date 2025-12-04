@@ -6,7 +6,6 @@ from app.core.config import settings
 from app.api import building, coordinates, restricted_zone
 from app.services import db_service
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.cors import CORSMiddleware
 
 
 # --- FastAPI 이벤트 훅 (앱 시작/종료 시 실행) ---
@@ -17,7 +16,6 @@ async def lifespan(app: FastAPI):
     await asyncio.to_thread(db_service.initialize_address_table)  # address 테이블 채우기
     await db_service.fill_missing_coordinates() # 비어 있는 좌표 채우기
     await db_service.initialize_restricted_zone() # 제한 구역 CSV 데이터 저장
-    # await asyncio.to_thread(db_service.initialize_impossible_table) # impossible 테이블 채우기
     yield
     # 앱 종료 시 실행
     print("👋 FastAPI 종료!")

@@ -85,7 +85,7 @@ async def calculate_restricted_zone():
         csv_results = []
         
         for landlot_addr, longitude, latitude in rows:
-            await asyncio.sleep(3)
+            await asyncio.sleep(4)
             
             # ORS를 사용해 Polygon 계산 (Shapely 객체)
             shapely_poly = await get_isochrone_polygon(latitude, longitude)

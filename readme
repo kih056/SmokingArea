@@ -1,14 +1,6 @@
 윈도우 ./run.ps1
 리눅스/맥  bash run.sh 또는 ./run.sh
 
-비어있는 값 처리
-주소는 "비어있음"
-좌표는 (-1,-1)
-
-DB 확인하기
-docker exec -it coordinate_db psql -U Team_ten -d tabaco_retail
-SELECT * FROM address LIMIT 11;
-
 api key 생성
 Naver Cloud Platform: Map application 모든 서비스 항목 추가하여 생성
 Naver developer: application - search 추가하여 생성

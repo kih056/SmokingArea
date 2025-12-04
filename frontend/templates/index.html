@@ -3,17 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>부동산 지도 서비스</title>
+    <title>Tobacco Retails Maps</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script type="text/javascript" 
         src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}&callback=initMap&submodules=geocoder">
     </script>
+    
+    <style>
+        /* 로고 스타일 수정 */
+        .logo-link {
+            text-decoration: none; /* 밑줄 제거 */
+            display: block;
+            margin-bottom: 20px; /* 아래 컨텐츠와 간격 */
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee; /* 구분선 추가 */
+        }
+
+        .logo {
+            margin : 5px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333; /* var 변수가 없을 경우를 대비해 직접 색상 지정하거나 변수 유지 */
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo span {
+            color: #03c75a; /* 네이버 그린 색상 직접 지정 */
+        }
+        
+        .logo:hover {
+            opacity: 0.8; /* 마우스 올렸을 때 반응 */
+        }
+    </style>
 </head>
 <body>
     <div id="container">
         <div id="sidebar">
+            
+            <a href="/" class="logo-link">
+                <div class="logo">
+                    <i class="fa-solid fa-map-location-dot" style="color:#03c75a;"></i>
+                    Tobacco Retails <span>Maps</span>
+                </div>
+            </a>
+
             <button id="sidebar-toggle-btn" onclick="toggleSidebar()">
                 <i class="fa-solid fa-chevron-left"></i>
             </button>
@@ -23,7 +60,7 @@
                 <div class="feature-box">
                     <h3>주소 검색</h3>
                     <div style="display: flex; gap: 5px;">
-                        <input type="text" id="search-address" placeholder="주소 입력 (예: 판교역)" 
+                        <input type="text" id="search-address" placeholder="" 
                                onkeypress="if(event.key==='Enter') searchAddress()" style="margin:0;">
                         <button onclick="searchAddress()" style="width: 60px; margin:0;">이동</button>
                     </div>

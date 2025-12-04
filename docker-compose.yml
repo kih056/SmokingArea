@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: tabaco_retail
       POSTGRES_USER: Team_ten
-      POSTGRES_PASSWORD: 1234040
+      POSTGRES_PASSWORD: 1234
     ports:
       - "5432:5432"
     volumes:
@@ -47,7 +47,7 @@ services:
     depends_on:
       - backend
     env_file:
-      - ./frontend/.env
+      - ./backend/.env
     ports:
       - "8080:5000"
     networks:

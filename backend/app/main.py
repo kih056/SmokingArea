@@ -1,4 +1,3 @@
-# app/main.py
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import asyncio
@@ -6,6 +5,7 @@ import asyncio
 from app.core.config import settings
 from app.api import building, coordinates, restricted_zone
 from app.services import db_service
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -42,3 +42,6 @@ app.include_router(restricted_zone.router)
 @app.get("/")
 async def read_root():
     return {"message": "Welcome to Tobacco Retailer Location API!"}
+
+
+

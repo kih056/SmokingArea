@@ -6,7 +6,7 @@ from app.core.config import settings
 
 # --- SQLAlchemy 엔진 및 세션 설정 (FastAPI 비동기 환경에 맞게 조정) ---
 # 동기 엔진 생성 (FastAPI에서 직접 사용하지 않고, asyncio.to_thread로 감싸서 사용)
-DATABASE_URL = "postgresql://Team_ten:1234040@db:5432/tabaco_retail"
+DATABASE_URL = "postgresql://Team_ten:1234@db:5432/tabaco_retail"
 sync_engine = create_engine(DATABASE_URL) 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=sync_engine)
 

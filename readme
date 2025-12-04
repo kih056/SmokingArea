@@ -10,15 +10,15 @@ docker exec -it coordinate_db psql -U Team_ten -d tabaco_retail
 SELECT * FROM address LIMIT 11;
 
 api key 생성
-Naver Cloud Flatform: Map application 모든 서비스 항목 추가하여 생성
+Naver Cloud Platform: Map application 모든 서비스 항목 추가하여 생성
 Naver developer: application - search 추가하여 생성
 openrouteservice: 로그인 후 키 저장
 
 .env 파일 설정
 1. SmokingArea 폴더(root) 안에 .env 파일 생성
 2. 생성한 .env 파일에 환경 변수 추가:
-   - NAVER_CLIENT_ID="naver cloud flatform id"
-   - NAVER_CLIENT_SECRET="naver cloud flatform key"
+   - NAVER_CLIENT_ID="naver cloud platform id"
+   - NAVER_CLIENT_SECRET="naver cloud platform key"
    - ORS_API_KEY="openrouteservice key"
    - NAVER_DEV_ID="naver developer id"
    - NAVER_DEV_SECRET="naver developer key"

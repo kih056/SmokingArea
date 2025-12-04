@@ -1,6 +1,132 @@
+<!DOCTYPE html>
 <html>
-    <head><title>담배권 : 담배판매업소 가이드라인</title></head>
-    <body>
-        <h1>담배권</h1>
-    </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tobacco Retails Maps</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script type="text/javascript" 
+        src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId={{ client_id }}&callback=initMap&submodules=geocoder">
+    </script>
+    
+    <style>
+        /* 로고 스타일 수정 */
+        .logo-link {
+            text-decoration: none; /* 밑줄 제거 */
+            display: block;
+            margin-bottom: 20px; /* 아래 컨텐츠와 간격 */
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee; /* 구분선 추가 */
+        }
+
+        .logo {
+            margin : 5px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333; /* var 변수가 없을 경우를 대비해 직접 색상 지정하거나 변수 유지 */
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo span {
+            color: #03c75a; /* 네이버 그린 색상 직접 지정 */
+        }
+        
+        .logo:hover {
+            opacity: 0.8; /* 마우스 올렸을 때 반응 */
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="sidebar">
+            
+            <a href="/" class="logo-link">
+                <div class="logo">
+                    <i class="fa-solid fa-map-location-dot" style="color:#03c75a;"></i>
+                    Tobacco Retails <span>Maps</span>
+                </div>
+            </a>
+
+            <button id="sidebar-toggle-btn" onclick="toggleSidebar()">
+                <i class="fa-solid fa-chevron-left"></i>
+            </button>
+
+            <div class="sidebar-content">
+                
+                <div class="feature-box">
+                    <h3>주소 검색</h3>
+                    <div style="display: flex; gap: 5px;">
+                        <input type="text" id="search-address" placeholder="" 
+                               onkeypress="if(event.key==='Enter') searchAddress()" style="margin:0;">
+                        <button onclick="searchAddress()" style="width: 60px; margin:0;">이동</button>
+                    </div>
+                </div>
+
+                <div style="display: none !important;">
+                    <p id="coord-display"></p>
+                    <div id="result-info">
+                        <span id="check-result"></span>
+                    </div>
+                </div>
+
+                <div class="feature-box" style="display: flex; align-items: center; justify-content: space-between;">
+                    <h3 style="margin:0; border:none; padding:0;">주변 상권 표시 (50m)</h3>
+                    <label class="switch">
+                        <input type="checkbox" id="nearby-toggle" onchange="toggleNearbyMode()">
+                        <span class="slider"></span>
+                    </label>
+                    <div id="nearby-loading" style="display:none;"></div>
+                </div>
+
+                <div class="feature-box">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h3 style="margin:0; border:none; padding:0;">위시리스트 저장</h3>
+                        
+                        <button onclick="downloadCSV()" 
+                                style="width: auto; padding: 4px 8px; font-size: 11px; background-color: #2db400; border-radius: 4px;">
+                            <i class="fa-solid fa-file-csv"></i> 엑셀저장
+                        </button>
+                    </div>
+                    
+                    <div id="wishlist-form">
+                        <div class="form-row">
+                            <input type="text" id="wishlist-group" list="group-list" placeholder="그룹명 (예: 아파트)" style="flex:1;">
+                            <datalist id="group-list"></datalist>
+                            <input type="color" id="wishlist-color" value="#0078ff" title="마커 색상">
+                        </div>
+                        <textarea id="wishlist-note" placeholder="메모를 입력하세요" rows="2"></textarea>
+                        <button id="add-wish-button" disabled onclick="saveCurrentLocation()">현재 위치 저장</button>
+                    </div>
+                    
+                    <hr style="border:0; border-top:1px dashed #ddd; margin: 15px 0;">
+                    
+                    <div id="wishlist-container">
+                        </div>
+                </div>
+                
+                <div style="margin-top:auto; font-size:11px; color:#999; text-align: center; padding-top:20px;">
+                    <p>Port 8000 Server Connected</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="map"></div>
+        
+        <div id="location-footer">
+            <div class="footer-content">
+                <span id="footer-address" class="footer-address"></span>
+                <span id="footer-status" class="footer-status"></span>
+            </div>
+            <button id="footer-roadview-btn" class="footer-button" onclick="openRoadViewFromFooter()">
+                로드뷰 보기
+            </button>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
 </html>

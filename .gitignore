@@ -1,1 +1,4 @@
 /db/postgres_data
+
+# 환경 변수 파일
+.env

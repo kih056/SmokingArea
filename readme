@@ -9,6 +9,13 @@ DB 확인하기
 docker exec -it coordinate_db psql -U Team_ten -d tabaco_retail
 SELECT * FROM address LIMIT 11;
 
+.env 파일 설정
+1. backend 폴더 안에 .env 파일 생성
+2. 생성한 .env 파일에 환경 변수 추가:
+   - NAVER_CLIENT_ID
+   - NAVER_CLIENT_SECRET
+   - ORS_API_KEY
+
 
 #### git
 branch

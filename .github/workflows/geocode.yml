@@ -42,7 +42,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r backend/requirements.txt; fi
-        pip install pytest pytest-asyncio geoalchemy2
+        pip install pytest pytest-asyncio pytest-mock geoalchemy2
 
     - name: Run Geocoding Test
       env:
